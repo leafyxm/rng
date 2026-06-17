@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fortune Roll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e222e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #7a7f94;
+    --accent: #7c6af7;
+    --accent2: #9d8fff;
+    --gold: #f5c842;
+    --green: #3dd68c;
+    --red: #f0614a;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* --- AUTH --- */
+  #auth-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .auth-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+  .auth-logo span { color: var(--accent2); }
+  .auth-tagline { color: var(--muted); font-size: 0.9rem; margin-bottom: 2.5rem; }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+  }
+  .auth-tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--surface2); border-radius: var(--radius-sm); padding: 4px; }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer;
+    font-size: 0.875rem; font-weight: 500; color: var(--muted); transition: all 0.15s; border: none; background: none;
+  }
+  .auth-tab.active { background: var(--surface); color: var(--text); }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .field input {
+    width: 100%; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:active { transform: scale(0.98); }
+  .auth-error { color: var(--red); font-size: 0.82rem; margin-top: 0.75rem; text-align: center; min-height: 18px; }
+
+  /* --- MAIN APP --- */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 1.05rem; color: var(--text); flex: 1; }
+  .logo span { color: var(--accent2); }
+  .online-pill {
+    display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--muted);
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px;
+  }
+  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .user-chip {
+    display: flex; align-items: center; gap: 8px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: 20px; padding: 5px 12px 5px 6px; cursor: pointer;
+  }
+  .user-chip:hover { border-color: var(--border2); background: var(--surface); }
+
+  nav {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 12px 20px; border: none; background: none; color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .nav-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .nav-btn:hover:not(.active) { color: var(--text); }
+
+  main { flex: 1; padding: 1.5rem; max-width: 700px; margin: 0 auto; width: 100%; }
+
+  /* --- PANELS --- */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* --- DICE GAME --- */
+  .score-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .score-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1rem; text-align: center;
+  }
+  .score-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .score-card .val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; color: var(--text); }
+
+  .dice-card {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius);
+    padding: 2.5rem 1rem; text-align: center; margin-bottom: 1.25rem;
+  }
+  .dice-display {
+    font-size: 80px; line-height: 1; margin-bottom: 1rem; cursor: pointer;
+    display: inline-block; transition: transform 0.08s;
+  }
+  .dice-display.roll-anim { animation: diceRoll 0.45s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes diceRoll {
+    0%   { transform: rotate(-15deg) scale(1.25); }
+    25%  { transform: rotate(12deg) scale(0.85); }
+    55%  { transform: rotate(-8deg) scale(1.1); }
+    80%  { transform: rotate(4deg) scale(0.95); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  .hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; }
+  .roll-btn-big {
+    background: var(--accent); border: none; border-radius: var(--radius-sm); color: #fff;
+    font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; padding: 13px 48px;
+    cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s;
+  }
+  .roll-btn-big:hover { background: var(--accent2); }
+  .roll-btn-big:active { transform: scale(0.97); }
+  .roll-btn-big:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .result-banner {
+    margin-top: 1rem; font-size: 1rem; font-weight: 600; min-height: 26px;
+    transition: color 0.2s;
+  }
+  .result-banner.win { color: var(--green); }
+  .result-banner.loss { color: var(--red); }
+  .result-banner.jackpot { color: var(--gold); }
+
+  .history-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .card-title { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+  .history-list { list-style: none; max-height: 200px; overflow-y: auto; scrollbar-width: thin; }
+  .h-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .h-item:last-child { border: none; }
+  .h-face { font-size: 1.3rem; }
+  .h-time { color: var(--muted); flex: 1; }
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .badge.win { background: rgba(61,214,140,0.12); color: var(--green); }
+  .badge.loss { background: rgba(240,97,74,0.12); color: var(--red); }
+  .badge.jackpot { background: rgba(245,200,66,0.12); color: var(--gold); }
+  .h-pts { font-family: 'Space Mono', monospace; font-size: 0.82rem; font-weight: 700; min-width: 36px; text-align: right; }
+  .h-pts.pos { color: var(--green); }
+  .h-pts.neg { color: var(--red); }
+
+  /* --- STATS --- */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem;
+  }
+  .stat-tile .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .stat-tile .val { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; }
+  .stat-tile .sub { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+  /* --- FRIENDS --- */
+  .add-row { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+  .add-row input {
+    flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-family: inherit; font-size: 0.9rem; outline: none;
+  }
+  .add-row input:focus { border-color: var(--accent); }
+  .btn-sm {
+    padding: 10px 16px; background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-family: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-sm:hover { background: var(--accent2); }
+  .btn-ghost {
+    padding: 6px 12px; background: transparent; border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--muted); font-family: inherit; font-size: 0.78rem; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+
+  .friend-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .friend-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .friend-item:last-child { border: none; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
+  .friend-info { flex: 1; }
+  .friend-name { font-size: 0.9rem; font-weight: 600; }
+  .friend-meta { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+  .online-badge { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 4px; vertical-align: middle; }
+  .offline-badge { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 4px; vertical-align: middle; }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.9rem; }
+
+  /* --- LEADERBOARD --- */
+  .lb-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .lb-item:last-child { border: none; }
+  .lb-item.me { background: rgba(124,106,247,0.07); margin: 0 -1.25rem; padding: 10px 1.25rem; border-radius: 0; }
+  .rank-num { font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: 700; color: var(--muted); min-width: 28px; }
+  .rank-num.gold { color: var(--gold); }
+  .rank-num.silver { color: #b0bec5; }
+  .rank-num.bronze { color: #cd7f32; }
+  .lb-info { flex: 1; }
+  .lb-name { font-size: 0.9rem; font-weight: 600; }
+  .lb-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .lb-score { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--accent2); }
+
+  /* --- LIVE FEED --- */
+  .live-feed { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+  .feed-item { font-size: 0.8rem; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); animation: fadeIn 0.3s; }
+  .feed-item:last-child { border: none; }
+  .feed-item span { color: var(--accent2); font-weight: 600; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* --- TOAST --- */
+  #toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    padding: 10px 20px; font-size: 0.85rem; color: var(--text);
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* --- NOTIFICATION BELL --- */
+  .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: none; }
+  .notif-dot.show { display: inline-block; }
+
+  .section-gap { margin-top: 1.25rem; }
+
+  @media(max-width: 480px) {
+    header { padding: 0.75rem 1rem; }
+    main { padding: 1rem; }
+    .roll-btn-big { padding: 12px 36px; font-size: 0.9rem; }
+    .dice-display { font-size: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-logo">Fortune <span>Roll</span></div>
+  <p class="auth-tagline">Real-time multiplayer dice — compete with the world</p>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="setAuthTab('login')">Log in</button>
+      <button class="auth-tab" onclick="setAuthTab('register')">Sign up</button>
+    </div>
+    <div class="field"><label>Username</label><input id="auth-user" placeholder="your_name" autocomplete="username" /></div>
+    <div class="field"><label>Password</label><input id="auth-pass" type="password" placeholder="••••••••" autocomplete="current-password" /></div>
+    <button class="btn-primary" onclick="authSubmit()">Continue</button>
+    <p class="auth-error" id="auth-error"></p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo">Fortune <span>Roll</span></div>
+    <div class="online-pill"><span class="online-dot"></span><span id="online-count">0</span> online</div>
+    <div class="user-chip" onclick="logout()">
+      <div class="avatar" id="header-avatar" style="width:28px;height:28px;font-size:0.72rem;"></div>
+      <span id="header-name" style="font-size:0.85rem;font-weight:600;"></span>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-btn active" onclick="showPanel('play')">🎲 Play</button>
+    <button class="nav-btn" onclick="showPanel('stats')">📊 Stats</button>
+    <button class="nav-btn" onclick="showPanel('friends')">👥 Friends <span class="notif-dot" id="friend-notif"></span></button>
+    <button class="nav-btn" onclick="showPanel('leaderboard')">🏆 Leaderboard</button>
+  </nav>
+
+  <main>
+    <!-- PLAY -->
+    <div class="panel active" id="panel-play">
+      <div id="live-feed-wrap" class="live-feed" style="display:none;">
+        <div class="card-title">Live activity</div>
+        <div id="live-feed"></div>
+      </div>
+      <div class="score-row">
+        <div class="score-card"><div class="label">Score</div><div class="val" id="p-score">0</div></div>
+        <div class="score-card"><div class="label">Wins</div><div class="val" id="p-wins">0</div></div>
+        <div class="score-card"><div class="label">Streak</div><div class="val" id="p-streak">0</div></div>
+      </div>
+      <div class="dice-card">
+        <div class="dice-display" id="dice">🎲</div>
+        <p class="hint">Roll 4–5 for +10 pts &nbsp;·&nbsp; Roll 6 for jackpot +30 pts &nbsp;·&nbsp; 1–3 loses 5 pts</p>
+        <button class="roll-btn-big" id="roll-btn" onclick="doRoll()">ROLL</button>
+        <div class="result-banner" id="result-banner"></div>
+      </div>
+      <div class="history-card">
+        <div class="card-title">Your rolls</div>
+        <ul class="history-list" id="history-list"></ul>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="panel" id="panel-stats">
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+
+    <!-- FRIENDS -->
+    <div class="panel" id="panel-friends">
+      <div class="add-row">
+        <input id="friend-input" placeholder="Add player by username" onkeydown="if(event.key==='Enter')addFriend()" />
+        <button class="btn-sm" onclick="addFriend()">Add friend</button>
+      </div>
+      <div class="friend-card" id="friend-list-wrap">
+        <div class="card-title">Friends</div>
+        <div id="friend-list"><p class="empty-state">Add friends by username to see their scores live.</p></div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="panel" id="panel-leaderboard">
+      <div class="friend-card">
+        <div class="card-title">Top players</div>
+        <div id="lb-list"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const AVATAR_COLORS = [
+  ['#2d1b69','#9d8fff'],['#0a3d2b','#3dd68c'],['#3d1a10','#f0614a'],
+  ['#3d3010','#f5c842'],['#0e2a45','#60b4f5'],['#1a3010','#6dd44a']
+];
+
+let ws, token, me = {}, leaderboard = [], friends = [], authMode = 'login';
+let toastTimeout, liveEvents = [];
+
+function setAuthTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='register')));
+}
+
+async function authSubmit() {
+  const username = document.getElementById('auth-user').value.trim().toLowerCase();
+  const password = document.getElementById('auth-pass').value;
+  if (!username || !password) { showAuthError('Fill in both fields'); return; }
+  const res = await fetch('/api/' + authMode, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
+  const data = await res.json();
+  if (!data.ok) { showAuthError(data.error); return; }
+  token = data.token;
+  me = data.user;
+  showAuthError('');
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  setupHeader();
+  connectWS();
+}
+
+function showAuthError(msg) { document.getElementById('auth-error').textContent = msg; }
+
+function logout() {
+  if (ws) ws.close();
+  token = null; me = {};
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('auth-pass').value = '';
+  setAuthTab('login');
+}
+
+document.getElementById('auth-pass').addEventListener('keydown', e => { if (e.key === 'Enter') authSubmit(); });
+document.getElementById('auth-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('auth-pass').focus(); });
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'auth', data: { token } }));
+  ws.onmessage = (e) => handleMsg(JSON.parse(e.data));
+  ws.onclose = () => { setTimeout(connectWS, 2000); };
+}
+
+function handleMsg({ event, data }) {
+  if (event === 'authed') {
+    me = data.user;
+    leaderboard = data.leaderboard;
+    friends = data.friends;
+    document.getElementById('online-count').textContent = data.online;
+    updatePlayUI();
+    renderStats();
+    renderFriends();
+    renderLeaderboard();
+  }
+  if (event === 'roll_result') {
+    me = data.user;
+    finishRoll(data);
+    renderStats();
+  }
+  if (event === 'score_update') {
+    addLiveFeed(data);
+    renderLeaderboard();
+  }
+  if (event === 'leaderboard') {
+    leaderboard = data;
+    renderLeaderboard();
+  }
+  if (event === 'friends_update') {
+    friends = data.friends;
+    renderFriends();
+  }
+  if (event === 'friend_error') {
+    showToast('⚠ ' + data.error);
+  }
+  if (event === 'friend_request') {
+    showToast(`${data.from} added you as a friend!`);
+    document.getElementById('friend-notif').classList.add('show');
+    ws.send(JSON.stringify({ type: 'get_friends' }));
+  }
+  if (event === 'player_online' || event === 'player_offline') {
+    document.getElementById('online-count').textContent = data.online;
+    renderFriends();
+  }
+  if (event === 'auth_fail') { logout(); }
+}
+
+let rolling = false;
+function doRoll() {
+  if (rolling) return;
+  rolling = true;
+  document.getElementById('roll-btn').disabled = true;
+  document.getElementById('result-banner').textContent = '';
+  document.getElementById('result-banner').className = 'result-banner';
+  const dice = document.getElementById('dice');
+  dice.classList.remove('roll-anim');
+  void dice.offsetWidth;
+  dice.classList.add('roll-anim');
+  let t = 0;
+  const tick = setInterval(() => {
+    dice.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
+    t++;
+    if (t >= 10) clearInterval(tick);
+  }, 45);
+  setTimeout(() => ws.send(JSON.stringify({ type: 'roll' })), 450);
+}
+
+function finishRoll({ val, resultType, pts }) {
+  rolling = false;
+  document.getElementById('roll-btn').disabled = false;
+  const dice = document.getElementById('dice');
+  dice.textContent = DICE_FACES[val - 1];
+  const banner = document.getElementById('result-banner');
+  if (resultType === 'jackpot') { banner.textContent = '🎉 Jackpot! +30 pts'; banner.className = 'result-banner jackpot'; showToast('🎉 JACKPOT!'); }
+  else if (resultType === 'win') { banner.textContent = `You rolled ${val} — Win! +10 pts`; banner.className = 'result-banner win'; }
+  else { banner.textContent = `You rolled ${val} — Miss. ${pts} pts`; banner.className = 'result-banner loss'; }
+  updatePlayUI();
+}
+
+function updatePlayUI() {
+  document.getElementById('p-score').textContent = me.score ?? 0;
+  document.getElementById('p-wins').textContent = me.wins ?? 0;
+  document.getElementById('p-streak').textContent = (me.streak ?? 0) + (me.streak >= 3 ? '🔥' : '');
+  renderHistory();
+}
+
+function renderHistory() {
+  const ul = document.getElementById('history-list');
+  if (!me.history?.length) { ul.innerHTML = '<li class="h-item" style="justify-content:center;color:var(--muted)">No rolls yet</li>'; return; }
+  ul.innerHTML = me.history.map(h => `
+    <li class="h-item">
+      <span class="h-face">${DICE_FACES[h.val-1]}</span>
+      <span class="h-time">${h.t}</span>
+      <span class="badge ${h.type}">${h.type==='jackpot'?'⭐ Jackpot':h.type==='win'?'Win':'Miss'}</span>
+      <span class="h-pts ${h.pts.startsWith('-')?'neg':'pos'}">${h.pts}</span>
+    </li>`).join('');
+}
+
+function renderStats() {
+  const rate = me.totalRolls ? Math.round(me.wins / me.totalRolls * 100) : 0;
+  document.getElementById('stats-grid').innerHTML = [
+    ['Total rolls', me.totalRolls ?? 0, ''],
+    ['Win rate', rate + '%', `${me.wins ?? 0} wins / ${me.losses ?? 0} losses`],
+    ['Best streak', (me.bestStreak ?? 0) + '🔥', 'consecutive wins'],
+    ['Jackpots', me.jackpots ?? 0, '+30 pts each'],
+    ['Total score', me.score ?? 0, 'across all rolls'],
+    ['Rank', '#' + (leaderboard.findIndex(u => u.username === me.username) + 1 || '?'), 'on leaderboard'],
+  ].map(([label, val, sub]) => `
+    <div class="stat-tile">
+      <div class="label">${label}</div>
+      <div class="val">${val}</div>
+      ${sub ? `<div class="sub">${sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderFriends() {
+  document.getElementById('friend-notif').classList.remove('show');
+  const el = document.getElementById('friend-list');
+  if (!friends.length) { el.innerHTML = '<p class="empty-state">Add friends by username to see their scores live.</p>'; return; }
+  el.innerHTML = friends.map(f => {
+    const [bg, fg] = AVATAR_COLORS[f.avatarIdx % 6];
+    return `<div class="friend-item">
+      <div class="avatar" style="background:${bg};color:${fg}">${f.username[0].toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.username}</div>
+        <div class="friend-meta">
+          <span class="${f.online ? 'online-badge' : 'offline-badge'}"></span>
+          ${f.online ? 'Online' : 'Offline'} · Score: ${f.score} · Wins: ${f.wins}
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="removeFriend('${f.username}')">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+function addFriend() {
+  const input = document.getElementById('friend-input');
+  const name = input.value.trim().toLowerCase();
+  if (!name) return;
+  ws.send(JSON.stringify({ type: 'add_friend', data: { username: name } }));
+  input.value = '';
+}
+
+function removeFriend(name) {
+  ws.send(JSON.stringify({ type: 'remove_friend', data: { username: name } }));
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('lb-list');
+  if (!leaderboard.length) { el.innerHTML = '<p class="empty-state">No players yet</p>'; return; }
+  el.innerHTML = leaderboard.map((u, i) => {
+    const [bg, fg] = AVATAR_COLORS[u.avatarIdx % 6];
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+    const isMe = u.username === me.username;
+    return `<div class="lb-item ${isMe ? 'me' : ''}">
+      <span class="rank-num ${rankClass}">${rankLabel}</span>
+      <div class="avatar" style="background:${bg};color:${fg};width:32px;height:32px;font-size:0.78rem">${u.username[0].toUpperCase()}</div>
+      <div class="lb-info">
+        <div class="lb-name">${u.username}${isMe ? ' <span style="color:var(--muted);font-weight:400">(you)</span>' : ''}</div>
+        <div class="lb-sub"><span class="${u.online?'online-badge':'offline-badge'}"></span>${u.online?'Online':'Offline'} · ${u.wins} wins</div>
+      </div>
+      <span class="lb-score">${u.score}</span>
+    </div>`;
+  }).join('');
+}
+
+function addLiveFeed(data) {
+  const feed = document.getElementById('live-feed');
+  const wrap = document.getElementById('live-feed-wrap');
+  wrap.style.display = 'block';
+  const icons = { jackpot: '⭐', win: '✅', loss: '❌' };
+  const div = document.createElement('div');
+  div.className = 'feed-item';
+  div.innerHTML = `${icons[data.resultType]} <span>${data.username}</span> rolled ${DICE_FACES[data.val-1]}${data.resultType==='jackpot'?' jackpot!':data.resultType==='win'?' and won':' and missed'}`;
+  feed.prepend(div);
+  liveEvents.push(div);
+  if (liveEvents.length > 5) { liveEvents[0].remove(); liveEvents.shift(); }
+}
+
+function setupHeader() {
+  document.getElementById('header-name').textContent = me.username;
+  const [bg, fg] = AVATAR_COLORS[me.avatarIdx % 6];
+  const av = document.getElementById('header-avatar');
+  av.style.background = bg; av.style.color = fg;
+  av.textContent = me.username[0].toUpperCase();
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+let toastT;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
