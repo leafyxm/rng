@@ -2,6 +2,7 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 const { createServer } = require('http');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = createServer(app);
@@ -20,10 +21,34 @@ function simpleHash(str) {
 let uidSeq = 0;
 function newId() { return (++uidSeq).toString(36) + Date.now().toString(36); }
 
+// ── Persistence ──────────────────────────────────────────────────────────────
+const DB_PATH = path.join(__dirname, 'data.json');
+
+function loadDB() {
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      const raw = fs.readFileSync(DB_PATH, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (e) { console.error('Failed to load DB:', e.message); }
+  return {};
+}
+
+function saveDB() {
+  try { fs.writeFileSync(DB_PATH, JSON.stringify(users), 'utf8'); }
+  catch (e) { console.error('Failed to save DB:', e.message); }
+}
+
+// Save every 10 seconds
+setInterval(saveDB, 10000);
+// Also save on exit
+process.on('SIGTERM', () => { saveDB(); process.exit(0); });
+process.on('SIGINT',  () => { saveDB(); process.exit(0); });
+
 // ── In-memory store ──────────────────────────────────────────────────────────
-const users    = {};   // username -> user
-const sessions = {};   // token -> username
-const clients  = {};   // username -> ws
+const users    = loadDB(); // username -> user
+const sessions = {};       // token -> username
+const clients  = {};       // username -> ws
 
 // ── Shop catalogue ───────────────────────────────────────────────────────────
 const SHOP = {
