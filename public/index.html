@@ -391,8 +391,15 @@ const COLORS = ['#7c6af7','#3dd68c','#f0614a','#f5c842','#60b4f5','#ff6eb4','#ff
 const SHOP_ICONS = { luck_boost:'🍀', roll_speed:'⚡', auto_roll:'🤖', afk_income:'💤', jackpot_boost:'💎', curse:'🔮', shield:'🛡️', profile_badge:'🏅', xp_boost:'✨' };
 
 let ws, token, me = {}, leaderboard = [], shop = {}, autoRollTimer = null;
-let notifications = [], selectedEmoji = '🎲', selectedColor = '#7c6af7';
-
+let notifications = [], selectedEmoji = "🎲", selectedColor = "#7c6af7";
+// ── AUTO-LOGIN ────────────────────────────────────────────────────────────────
+const savedToken = localStorage.getItem("fr_token");
+if (savedToken) {
+  token = savedToken;
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  connectWS();
+}
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 let authMode = 'login';
 function setAuthTab(m) {
@@ -407,6 +414,7 @@ async function authSubmit() {
   const d = await r.json();
   if (!d.ok) { document.getElementById('a-err').textContent=d.error; return; }
   token=d.token; me=d.user;
+  localStorage.setItem('fr_token', token);
   document.getElementById('a-err').textContent='';
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -415,7 +423,7 @@ async function authSubmit() {
 function logout() {
   stopAutoRoll();
   if(ws) ws.close();
-  token=null; me={};
+  localStorage.removeItem('fr_token'); token=null; me={};
   document.getElementById('app').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('a-pass').value='';
